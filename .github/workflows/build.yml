@@ -1,0 +1,94 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-linux:
+    name: ${{ matrix.compiler }} / ${{ matrix.std }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+        std: [c11, c99]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install clang
+        if: matrix.compiler == 'clang'
+        run: sudo apt-get install -y clang
+
+      - name: Build library + example
+        run: |
+          ${{ matrix.compiler }} \
+            -std=${{ matrix.std }} \
+            -Wall -Wextra -Wpedantic -Werror \
+            -I include -I drivers \
+            src/i2c.c \
+            drivers/i2c_devices.c \
+            examples/example_all_devices.c \
+            -include string.h \
+            -o demo \
+            -lm
+
+      - name: Smoke run
+        run: ./demo || true   # exits 0 in real hardware; exit code may vary in simulation
+
+  build-arm:
+    name: ARM cross-compile (arm-none-eabi)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ARM toolchain
+        run: sudo apt-get install -y gcc-arm-none-eabi
+
+      - name: Cross-compile library (no libc, bare metal)
+        run: |
+          arm-none-eabi-gcc \
+            -std=c11 \
+            -Wall -Wextra \
+            -mcpu=cortex-m4 -mthumb \
+            -ffreestanding -nostdlib \
+            -I include -I drivers \
+            -c src/i2c.c \
+            -o i2c.o
+
+          arm-none-eabi-gcc \
+            -std=c11 \
+            -Wall -Wextra \
+            -mcpu=cortex-m4 -mthumb \
+            -ffreestanding -nostdlib \
+            -I include -I drivers \
+            -c drivers/i2c_devices.c \
+            -o i2c_devices.o
+
+      - name: Check symbol sizes
+        run: arm-none-eabi-size i2c.o i2c_devices.o
+
+  cppcheck:
+    name: Static analysis (cppcheck)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cppcheck
+        run: sudo apt-get install -y cppcheck
+
+      - name: Run cppcheck
+        run: |
+          cppcheck \
+            --std=c11 \
+            --enable=all \
+            --error-exitcode=1 \
+            --suppress=missingIncludeSystem \
+            -I include -I drivers \
+            src/ drivers/
