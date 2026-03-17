@@ -338,12 +338,6 @@ Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) first.
 
 ---
 
-## License
-
-MIT — see [LICENSE](LICENSE).
-
----
-
 ## References
 
 - [NXP UM10204](https://www.nxp.com/docs/en/user-guide/UM10204.pdf) — I2C-bus specification and user manual (the authoritative spec)
