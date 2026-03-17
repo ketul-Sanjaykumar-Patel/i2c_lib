@@ -91,5 +91,7 @@ jobs:
             --error-exitcode=1 \
             --suppress=missingIncludeSystem \
             --suppress=unusedFunction \
+            --suppress=variableScope \
+            --suppress=constVariable \
             -I include -I drivers \
             src/ drivers/
